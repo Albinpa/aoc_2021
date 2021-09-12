@@ -21,7 +21,7 @@ cat <<EOT >> Makefile
 # Builds and runs program made out of ${DIR_NAME}.cpp with files from ../shared/
 
 CC = g++ 
-CFLAGS  = -g -Wall -Werror
+CFLAGS  = -g -Wall -Werror -Wextra -std=c++2a
 
 TARGET = ${DIR_NAME}
 LIBRARY = ../shared
@@ -43,6 +43,8 @@ cat <<EOT >> ${DIR_NAME}.cpp
 #include <algorithm>
 #include <string>
 #include "aoc_library.hpp"
+
+using namespace AocAssert;
 
 int main()
 {

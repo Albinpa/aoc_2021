@@ -44,3 +44,17 @@ namespace AocVector
 		return ints;
 	}
 }
+
+namespace AocAssert
+{
+	template <typename T>
+	inline void assert_equal(const T actual, const T expected)
+	{
+		if (expected != actual)
+		{
+			std::cout << "assert_equal failed, actual: ";
+			std::cout << actual << " expected: " << expected << std::endl;
+			throw;
+		}
+	}
+}
