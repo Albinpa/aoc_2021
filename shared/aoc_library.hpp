@@ -4,8 +4,10 @@
 #include <vector>
 #include <cassert>
 #include <algorithm>
+#include <sstream>
+#include <unordered_map>
 
-namespace AocInput
+namespace aoc
 {
 	inline std::vector<std::string> get_lines(const std::string &filename)
 	{
@@ -22,18 +24,6 @@ namespace AocInput
 
 		return res;
 	}
-}
-
-namespace AocVector
-{
-	template <typename T>
-	inline void print_list(const std::vector<T> &vector)
-	{
-		for (const auto &i : vector)
-		{
-			std::cout << i << std::endl;
-		}
-	}
 
 	inline std::vector<int> transform_int(const std::vector<std::string> &strings)
 	{
@@ -43,10 +33,7 @@ namespace AocVector
 					   { return std::stoi(s); });
 		return ints;
 	}
-}
 
-namespace AocAssert
-{
 	template <typename T>
 	inline void assert_equal(const T actual, const T expected)
 	{
@@ -56,5 +43,32 @@ namespace AocAssert
 			std::cout << actual << " expected: " << expected << std::endl;
 			throw;
 		}
+	}
+
+	template <typename T>
+	inline void print(const std::vector<T> &vector)
+	{
+		std::stringstream ss;
+		ss << "[";
+		for (const auto &i : vector) {
+				ss << i;
+				if (&i != &vector.back()) {
+					ss << ",";
+				}
+		}
+		std::cout << ss.str() << "]" << std::endl;
+	}
+
+	template <typename T, typename K>
+	inline void print(const std::unordered_map<T,K> &map)
+	{
+		std::stringstream ss;
+		ss << "{";
+		for (const auto &i : map) {
+			ss << "{" << i.first << "," << i.second << "},";
+		}
+		ss.seekp(-1, ss.cur);
+		ss << "}";
+		std::cout << ss.str() << std::endl;
 	}
 }

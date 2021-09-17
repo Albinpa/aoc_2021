@@ -44,12 +44,11 @@ cat <<EOT >> ${DIR_NAME}.cpp
 #include <string>
 #include "aoc_library.hpp"
 
-using namespace AocAssert;
 
 int main()
 {
-    const auto lines = AocInput::get_lines("input.txt");
-    AocVector::print_list(lines);
+    const auto lines = aoc::get_lines("input.txt");
+    aoc::print(lines);
     return 0;
 }
 EOT
