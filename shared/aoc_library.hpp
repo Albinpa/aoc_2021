@@ -37,6 +37,12 @@ namespace aoc
     }
 
     template <typename T>
+    concept os_printable = requires(std::ostream os, T v)
+    {
+        os << v;
+    };
+
+    template <os_printable T>
     inline void assert_equal(const T actual, const T expected)
     {
         if (expected != actual)
@@ -47,7 +53,7 @@ namespace aoc
         }
     }
 
-    template <typename T>
+    template <os_printable T>
     inline void print(const std::vector<T> &v)
     {
         std::cout << "[";
@@ -57,11 +63,11 @@ namespace aoc
         std::cout << v.back() << "]" << std::endl;
     }
 
-    template <typename T>
+    template <os_printable T>
     inline void print(const std::vector<std::vector<T>> &v)
     {
         std::cout << "[" << std::endl;
-        ranges::for_each(v, [](const auto vi)
+        ranges::for_each(v, [](const auto &vi)
                          {
                              std::cout << " ";
                              print(vi);
@@ -69,7 +75,7 @@ namespace aoc
         std::cout << "]" << std::endl;
     }
 
-    template <typename T, typename K>
+    template <os_printable K, os_printable T>
     inline void print(const std::unordered_map<T, K> &map)
     {
         const auto format = [](const auto &pair)
