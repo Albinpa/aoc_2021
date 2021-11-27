@@ -47,9 +47,9 @@ namespace aoc
     {
         if (expected != actual)
         {
-            std::cout << "assert_equal failed, actual: ";
-            std::cout << actual << " expected: " << expected << std::endl;
-            throw;
+            std::stringstream ss;
+            ss << "assert_equal failed, actual: " << actual << " expected: " << expected;
+            throw std::runtime_error(ss.str());
         }
     }
 
