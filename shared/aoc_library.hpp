@@ -8,10 +8,10 @@
 #include <unordered_map>
 #include <ranges>
 
-namespace ranges = std::ranges;
-
 namespace aoc
 {
+    namespace ranges = std::ranges;
+
     inline std::vector<std::string> get_lines(const std::string &filename)
     {
         std::vector<std::string> res = {};
