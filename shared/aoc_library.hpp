@@ -53,36 +53,49 @@ namespace aoc
         }
     }
 
+    template <os_printable... Args>
+    inline void printnl(Args &&...args)
+    {
+        (std::cout << ... << std::forward<Args>(args));
+    }
+
+    template <os_printable... Args>
+    inline void print(Args &&...args)
+    {
+        printnl(args...);
+        std::cout << std::endl;
+    }
+
     template <os_printable T>
     inline void print(const std::vector<T> &v)
     {
-        std::cout << "[";
+        printnl("[");
         ranges::for_each(v | ranges::views::take(v.size() - 1),
                          [](const auto &i)
-                         { std::cout << i << ", "; });
-        std::cout << v.back() << "]" << std::endl;
+                         { printnl(i, ", "); });
+        print(v.back(), "]");
     }
 
     template <os_printable T>
     inline void print(const std::vector<std::vector<T>> &v)
     {
-        std::cout << "[" << std::endl;
+        print("[");
         ranges::for_each(v, [](const auto &vi)
                          {
-                             std::cout << " ";
+                             printnl(" ");
                              print(vi);
                          });
-        std::cout << "]" << std::endl;
+        print("]");
     }
 
     template <os_printable K, os_printable T>
     inline void print(const std::unordered_map<T, K> &map)
     {
         const auto format = [](const auto &pair)
-        { std::cout << "{" << pair.first << ", " << pair.second << "}, "; };
+        { printnl("{", pair.first, ", ", pair.second, "}, "); };
 
-        std::cout << "{";
+        printnl("{");
         ranges::for_each(map, format);
-        std::cout << "}" << std::endl;
+        print("}");
     }
 }
