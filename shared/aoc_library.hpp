@@ -28,12 +28,12 @@ namespace aoc
         return res;
     }
 
-    inline std::vector<int> transform_int(const std::vector<std::string> &strings)
+    inline std::vector<uint64_t> transform_int(const std::vector<std::string> &strings)
     {
         const auto to_int = [](const std::string &s)
-        { return std::stoi(s); };
+        { return std::stoull(s); };
         const auto ints = strings | ranges::views::transform(to_int);
-        return std::vector<int>(ints.begin(), ints.end());
+        return std::vector<uint64_t>(ints.begin(), ints.end());
     }
 
     template <typename T>
