@@ -20,7 +20,7 @@ cat <<EOT >> Makefile
 # Generated from ${THIS_FILE}
 # Builds and runs program made out of ${DIR_NAME}.cpp with files from ../shared/
 
-CC = g++ 
+CC = g++
 CFLAGS  = -g -Wall -Werror -Wextra -std=c++2a
 
 TARGET = ${DIR_NAME}
