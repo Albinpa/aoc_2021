@@ -36,6 +36,17 @@ namespace aoc
         return std::vector<uint64_t>(ints.begin(), ints.end());
     }
 
+    inline std::vector<std::string> split(const std::string &in, const std::string &delim)
+    {
+        const auto split = ranges::views::split(in, delim) |
+                           ranges::views::transform([](const auto &part)
+                                                    {
+                                                        const auto c = part | ranges::views::common;
+                                                        return std::string(c.begin(), c.end());
+                                                    });
+        return std::vector<std::string>(split.begin(), split.end());
+    }
+
     template <typename T>
     concept os_printable = requires(std::ostream os, T v)
     {

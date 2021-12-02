@@ -4,17 +4,6 @@
 #include <string>
 #include "aoc_library.hpp"
 
-std::pair<std::string, std::string> split(const std::string &input, const std::string &delim)
-{
-    const auto i = input.find(delim);
-    if (i == std::string::npos)
-    {
-        throw;
-    }
-
-    return std::make_pair(input.substr(0, i), input.substr(i, input.length()));
-}
-
 struct Position
 {
     uint64_t horizontal = 0;
@@ -36,19 +25,23 @@ int main()
 
     for (const auto &command : lines)
     {
-        const auto [first, second] = split(command, " ");
-        const uint64_t num = std::stoull(second);
-        if (first == "up")
+        const auto splitted = aoc::split(command, " ");
+        aoc::assert_equal(splitted.size(), (size_t)2);
+
+        const std::string &cmd = splitted[0];
+        const uint64_t num = std::stoull(splitted[1]);
+
+        if (cmd == "up")
         {
             part1.depth -= num;
             part2.aim -= num;
         }
-        else if (first == "down")
+        else if (cmd == "down")
         {
             part1.depth += num;
             part2.aim += num;
         }
-        else if (first == "forward")
+        else if (cmd == "forward")
         {
             part1.horizontal += num;
             part2.horizontal += num;
