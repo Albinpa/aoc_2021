@@ -44,7 +44,11 @@ namespace aoc
                                                         const auto c = part | ranges::views::common;
                                                         return std::string(c.begin(), c.end());
                                                     });
-        return std::vector<std::string>(split.begin(), split.end());
+        std::vector<std::string> splitted(split.begin(), split.end());
+        const auto [f, l] = ranges::remove_if(splitted, [](const auto &s)
+                                              { return s.empty(); });
+        splitted.erase(f, l);
+        return splitted;
     }
 
     template <typename T>
@@ -81,10 +85,9 @@ namespace aoc
     inline void print(const std::vector<T> &v)
     {
         printnl("[");
-        ranges::for_each(v | ranges::views::take(v.size() - 1),
-                         [](const auto &i)
+        ranges::for_each(v, [](const auto &i)
                          { printnl(i, ", "); });
-        print(v.back(), "]");
+        print("]");
     }
 
     template <os_printable T>
