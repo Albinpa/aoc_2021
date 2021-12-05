@@ -51,6 +51,20 @@ namespace aoc
         return splitted;
     }
 
+    template <size_t SIZE>
+    std::array<std::string, SIZE> search(const std::string &string, const std::string &regex)
+    {
+        std::array<std::string, SIZE> res;
+        std::smatch match;
+        std::regex_search(string, match, std::regex(regex));
+        assert(match.size() == SIZE + 1);
+        for (unsigned int i = 1; auto &s : res)
+        {
+            s = match[i++];
+        }
+        return res;
+    }
+
     template <typename T>
     concept os_printable = requires(std::ostream os, T v)
     {
@@ -102,14 +116,18 @@ namespace aoc
         print("]");
     }
 
+    template <os_printable T, os_printable K>
+    inline void print(const std::pair<T, K> &pair)
+    {
+        print("{", pair.first, ", ", pair.second, "}, ");
+    }
+
     template <os_printable K, os_printable T>
     inline void print(const std::unordered_map<T, K> &map)
     {
-        const auto format = [](const auto &pair)
-        { printnl("{", pair.first, ", ", pair.second, "}, "); };
-
-        printnl("{");
-        ranges::for_each(map, format);
+        print("{");
+        ranges::for_each(map, [](const auto &entry)
+                         { print(entry); });
         print("}");
     }
 }
