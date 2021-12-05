@@ -7,6 +7,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <ranges>
+#include <regex>
 
 namespace aoc
 {
@@ -52,11 +53,11 @@ namespace aoc
     }
 
     template <size_t SIZE>
-    std::array<std::string, SIZE> search(const std::string &string, const std::string &regex)
+    std::array<std::string, SIZE> search(const std::string &string, const std::regex &regex)
     {
         std::array<std::string, SIZE> res;
         std::smatch match;
-        std::regex_search(string, match, std::regex(regex));
+        std::regex_search(string, match, regex);
         assert(match.size() == SIZE + 1);
         for (unsigned int i = 1; auto &s : res)
         {

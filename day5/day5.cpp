@@ -1,10 +1,3 @@
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <string>
-#include <ranges>
-#include <cassert>
-#include <regex>
 #include "aoc_library.hpp"
 
 namespace ranges = std::ranges;
@@ -15,7 +8,8 @@ struct Line
 {
     Line(const std::string &line)
     {
-        const auto [x1, y1, x2, y2] = aoc::search<4>(line, "(\\d+),(\\d+) -> (\\d+),(\\d+)");
+        static const std::regex regex("(\\d+),(\\d+) -> (\\d+),(\\d+)");
+        const auto [x1, y1, x2, y2] = aoc::search<4>(line, regex);
         p1_ = {std::stoull(x1), std::stoull(y1)};
         p2_ = {std::stoull(x2), std::stoull(y2)};
     }

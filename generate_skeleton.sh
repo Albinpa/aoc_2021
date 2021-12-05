@@ -38,10 +38,6 @@ EOT
 
 # create main cpp file
 cat <<EOT >> ${DIR_NAME}.cpp
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <string>
 #include "aoc_library.hpp"
 
 
