@@ -43,6 +43,7 @@ cat <<EOT >> ${DIR_NAME}.cpp
 
 int main()
 {
+    const aoc::StopWatch stop_watch;
     const auto lines = aoc::get_lines("input.txt");
     aoc::print(lines);
     return 0;

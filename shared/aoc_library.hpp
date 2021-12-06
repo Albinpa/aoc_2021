@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <ranges>
 #include <regex>
+#include <chrono>
 
 namespace aoc
 {
@@ -131,4 +132,22 @@ namespace aoc
                          { print(entry); });
         print("}");
     }
+
+    class StopWatch
+    {
+    public:
+        StopWatch()
+        {
+            start_ = std::chrono::high_resolution_clock::now();
+        }
+        ~StopWatch()
+        {
+            const auto stop = std::chrono::high_resolution_clock::now();
+            const std::chrono::duration<double, std::milli> ms = stop - start_;
+            print("Elapsed time: ", ms.count(), "ms");
+        }
+
+    private:
+        std::chrono::_V2::system_clock::time_point start_;
+    };
 }
