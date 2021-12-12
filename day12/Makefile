@@ -2,7 +2,7 @@
 # Builds and runs program made out of day12.cpp with files from ../shared/
 
 CC = g++
-CFLAGS  = -g -Wall -Werror -Wextra -std=c++2a
+CFLAGS  = -g -O3 -Wall -Werror -Wextra -std=c++2a
 
 TARGET = day12
 LIBRARY = ../shared

@@ -10,8 +10,8 @@ inline constexpr char end[] = "end";
 
 inline bool small(const std::string &name)
 {
-    return (ranges::any_of(name, [](const auto c)
-                           { return !isupper(c); }));
+    return ranges::any_of(name, [](const auto c)
+                          { return !isupper(c); });
 };
 
 NodeConnections parse(const std::vector<std::string> &input)
@@ -40,67 +40,69 @@ NodeConnections parse(const std::vector<std::string> &input)
 class Path
 {
 public:
-    Path(bool part2 = false)
-        : visited_small_twice_(!part2)
+    Path(const std::string &last_node_name, const std::shared_ptr<Path> &tail, bool part2 = false)
+        : last_node_name_(last_node_name),
+          tail_(tail)
     {
+        if (!part2 ||
+            (tail && tail->visited_small_twice_) ||
+            (small(last_node_name) && contains(last_node_name)))
+        {
+            visited_small_twice_ = true;
+        }
     }
+
     bool ok_to_add(const std::string &node) const
     {
         if (node == start)
         {
             return false;
         }
-        if (nodes_.contains(node) && small(node))
+        if (small(node) && contains(node))
         {
             return !visited_small_twice_;
         }
         return true;
     }
 
-    void push_back(const std::string &node)
-    {
-        if (nodes_.contains(node) && small(node))
-        {
-            visited_small_twice_ = true;
-        }
-        nodes_.insert(node);
-        latest_ = node;
-    }
-
-    std::string latest_ = start;
+    std::string last_node_name_;
 
 private:
+    bool contains(const std::string &name) const
+    {
+        if (!tail_)
+        {
+            return false;
+        }
+        if (tail_->last_node_name_ == name)
+        {
+            return true;
+        }
+        return tail_->contains(name);
+    }
+
     bool visited_small_twice_ = false;
-    std::unordered_set<std::string> nodes_ = {start};
+    std::shared_ptr<Path> tail_;
 };
 
-std::vector<Path> find_all_paths(const NodeConnections &map, bool part2)
+uint64_t find_all_paths(const NodeConnections &map, bool part2)
 {
-    std::vector<Path> searching = {{part2}};
-    std::vector<Path> complete;
+    std::vector<std::shared_ptr<Path>> searching = {std::make_shared<Path>(start, nullptr, part2)};
+    uint64_t complete = 0;
     while (!searching.empty())
     {
-        const auto check = searching;
-        searching.clear();
-        for (unsigned int i = 0; i < check.size(); i++)
+        const auto tail = searching.back();
+        searching.pop_back();
+        for (const auto &next : map.at(tail->last_node_name_))
         {
-            const auto endpoint = check[i].latest_;
-            for (const auto &next : map.at(endpoint))
+            if (next == end)
             {
-                if (!check[i].ok_to_add(next))
-                {
-                    continue;
-                }
-                auto copy = check[i];
-                copy.push_back(next);
-                if (next == end)
-                {
-                    complete.push_back(copy);
-                }
-                else
-                {
-                    searching.push_back(copy);
-                }
+                complete++;
+                continue;
+            }
+            if (tail->ok_to_add(next))
+            {
+                searching.push_back(std::make_shared<Path>(next, tail, part2));
             }
         }
     }
@@ -110,28 +112,23 @@ std::vector<Path> find_all_paths(const NodeConnections &map, bool part2)
 int main()
 {
     const aoc::StopWatch stop_watch;
-    {
-        const std::vector<std::string> test1 = {"start-A",
-                                                "start-b",
-                                                "A-c",
-                                                "A-b",
-                                                "b-d",
-                                                "A-end",
-                                                "b-end"};
-        const auto parsed = parse(test1);
 
-        const auto paths_p1 = find_all_paths(parsed, false);
-        aoc::assert_equal(paths_p1.size(), 10ul);
+    const std::vector<std::string> test1 = {"start-A",
+                                            "start-b",
+                                            "A-c",
+                                            "A-b",
+                                            "b-d",
+                                            "A-end",
+                                            "b-end"};
+    const auto parsed = parse(test1);
 
-        const auto paths_p2 = find_all_paths(parsed, true);
-        aoc::assert_equal(paths_p2.size(), 36ul);
-    }
+    aoc::assert_equal(find_all_paths(parsed, false), 10ul);
+    aoc::assert_equal(find_all_paths(parsed, true), 36ul);
+
     const auto node_map = parse(aoc::get_lines("input.txt"));
 
-    const auto paths_p1 = find_all_paths(node_map, false);
-    aoc::assert_equal(paths_p1.size(), 3292ul);
+    aoc::assert_equal(find_all_paths(node_map, false), 3292ul);
+    aoc::assert_equal(find_all_paths(node_map, true), 89592ul);
 
-    const auto paths_p2 = find_all_paths(node_map, true);
-    aoc::assert_equal(paths_p2.size(), 89592ul);
     return 0;
 }
