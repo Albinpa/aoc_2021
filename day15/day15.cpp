@@ -1,4 +1,6 @@
 #include <unordered_set>
+#include <set>
+#include <cmath>
 #include "aoc_library.hpp"
 
 namespace ranges = std::ranges;
@@ -16,16 +18,40 @@ struct Point
     }
 };
 
-struct point_hash
+struct MinPrioPoint
 {
-    std::size_t operator()(const Point &pair) const
+    Point point;
+    uint64_t cost;
+
+    auto operator<=>(const MinPrioPoint &rhs) const
     {
-        const auto hash_fun = std::hash<uint64_t>();
-        return hash_fun(pair.x) ^ hash_fun(pair.y);
+        if (point == rhs.point)
+            return 0;
+        if (cost < rhs.cost)
+            return -1;
+        else if (cost > rhs.cost)
+            return 1;
+        else
+        {
+            if (point.x < rhs.point.x)
+                return -1;
+            if (point.x > rhs.point.x)
+                return 1;
+            return point.y < rhs.point.y ? -1 : 1;
+        }
     }
+
 };
 
-typedef std::unordered_set<Point, point_hash> PointSet;
+inline std::vector<Point> neighbours(const Grid &grid, const Point &at)
+{
+    std::vector<Point> res = {{at.x - 1, at.y}, {at.x + 1, at.y}, {at.x, at.y - 1}, {at.x, at.y + 1}};
+
+    const auto [f, l] = ranges::remove_if(res, [&grid](const auto p)
+                                          { return p.x >= grid[0].size() || p.y >= grid.size(); });
+    res.erase(f, l);
+    return res;
+}
 
 Grid parse(const std::vector<std::string> &input, bool part2 = false)
 {
@@ -66,58 +92,41 @@ Grid parse(const std::vector<std::string> &input, bool part2 = false)
     return res;
 }
 
-inline std::vector<Point> neighbours(const Grid &grid, const Point &at)
-{
-    std::vector<Point> res = {{at.x - 1, at.y}, {at.x + 1, at.y}, {at.x, at.y - 1}, {at.x, at.y + 1}};
-
-    const auto [f, l] = ranges::remove_if(res, [&grid](const auto p)
-                                          { return p.x >= grid[0].size() || p.y >= grid.size(); });
-    res.erase(f, l);
-    return res;
-}
-
 uint64_t dijkstra(const Grid &cost_grid)
 {
-    Point start = {0, 0};
-    Point end = {cost_grid[0].size() - 1, cost_grid.size() - 1};
-    PointSet visited;
-    PointSet neighbouring_unvisited = {start};
+    const Point start = {0, 0};
+    const Point end = {cost_grid[0].size() - 1, cost_grid.size() - 1};
+    std::set<MinPrioPoint> open_set = {{.point=start, .cost=0}};
 
     Grid distance_map = Grid(cost_grid.size(),
                              std::vector<uint64_t>(cost_grid[0].size(),
                                                    std::numeric_limits<uint64_t>::max()));
-
     distance_map[0][0] = 0;
 
-    Point current;
+    MinPrioPoint current;
     while (true)
     {
-        uint64_t min_cost_calc = std::numeric_limits<uint64_t>::max();
-        for (const auto &u : neighbouring_unvisited)
+        current = *open_set.begin();
+        if (current.point == end)
         {
-            if (distance_map[u.y][u.x] < min_cost_calc)
-            {
-                current = u;
-                min_cost_calc = distance_map[u.y][u.x];
-            }
+            return distance_map[end.y][end.x];
         }
-        for (const auto &neighbour : neighbours(cost_grid, current))
+        open_set.erase(current);
+        for (const auto &neighbour : neighbours(cost_grid, current.point))
         {
-            if (!visited.contains(neighbour))
+            const uint64_t tentative_cost = distance_map[current.point.y][current.point.x] +
+                                      cost_grid[neighbour.y][neighbour.x];
+
+            if (tentative_cost < distance_map[neighbour.y][neighbour.x])
             {
-                uint64_t cost = distance_map[current.y][current.x] + cost_grid[neighbour.y][neighbour.x];
-                if (cost < distance_map[neighbour.y][neighbour.x])
-                {
-                    distance_map[neighbour.y][neighbour.x] = cost;
-                }
-                neighbouring_unvisited.insert(neighbour);
+                distance_map[neighbour.y][neighbour.x] = tentative_cost;
+                const MinPrioPoint updated = {.point=neighbour,
+                                              .cost=tentative_cost};
+
+                const auto it = open_set.find(updated);
+                open_set.erase(it, open_set.end());
+                open_set.insert(updated);
             }
-        }
-        visited.insert(current);
-        neighbouring_unvisited.erase(current);
-        if (current == end)
-        {
-            return distance_map[current.y][current.x];
         }
     }
 }
