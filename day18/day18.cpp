@@ -11,7 +11,7 @@ struct SnailPair
     std::variant<std::shared_ptr<SnailPair>, uint64_t> left;
     std::variant<std::shared_ptr<SnailPair>, uint64_t> right;
 
-    void print()
+    void print() const
     {
         const auto print_variant = [](const auto &variant)
         {
@@ -74,7 +74,8 @@ inline std::optional<SnailPtr> search_split(const SnailPtr &snail)
 
 struct Generator
 {
-    uint64_t unique_id_ = 10;
+    static const uint64_t max_nr_in_input = 10ul;
+    uint64_t unique_id_ = max_nr_in_input;
 
     inline SnailPtr parse_line(const std::string line)
     {
@@ -98,11 +99,10 @@ struct Generator
                 // Done parsing line
                 break;
             }
-            unique_id_++;
 
             auto pair = std::make_shared<SnailPair>();
-            pair->id = unique_id_;
-            if (left_nr < 10ul)
+            pair->id = unique_id_++;
+            if (left_nr < max_nr_in_input)
             {
                 pair->left = left_nr;
             }
@@ -112,7 +112,7 @@ struct Generator
                 pair->left = kid;
                 kid->parent = pair;
             }
-            if (right_nr < 10ul)
+            if (right_nr < max_nr_in_input)
             {
                 pair->right = right_nr;
             }
@@ -190,7 +190,7 @@ inline uint64_t magnitude(const SnailPtr &snail)
     return left_mag * 3 + right_mag * 2;
 }
 
-typedef std::function<std::variant<SnailPtr, uint64_t>(SnailPtr)> SearchParentFunc;
+typedef std::function<std::variant<SnailPtr, uint64_t> &(SnailPtr)> SearchParentFunc;
 
 inline void add_to_first_on_side(const SnailPtr &snail, uint64_t val,
                                  SearchParentFunc search_up_side, SearchParentFunc search_down_side)
@@ -204,16 +204,19 @@ inline void add_to_first_on_side(const SnailPtr &snail, uint64_t val,
         {
             return;
         }
-        const auto &search_up_child = search_up_side(parent);
-        if (std::holds_alternative<SnailPtr>(search_up_child) &&
-            std::get<SnailPtr>(search_up_child)->id != snail_it->id)
+        auto &search_up_child = search_up_side(parent);
+        if (std::holds_alternative<SnailPtr>(search_up_child))
         {
-            snail_it = std::get<SnailPtr>(search_up_child);
-            break; // search down for right most of sibling
+            const auto ptr = std::get<SnailPtr>(search_up_child);
+            if (ptr->id != snail_it->id)
+            {
+                snail_it = ptr;
+                break; // search down for right most of sibling
+            }
         }
-        else if (std::holds_alternative<uint64_t>(search_up_child))
+        else
         {
-            parent->left = std::get<uint64_t>(search_up_child) + val;
+            search_up_child = std::get<uint64_t>(search_up_child) + val;
             return;
         }
         snail_it = parent;
@@ -221,7 +224,7 @@ inline void add_to_first_on_side(const SnailPtr &snail, uint64_t val,
     // search down
     while (true)
     {
-        const auto &search_down_child = search_down_side(snail_it);
+        auto &search_down_child = search_down_side(snail_it);
         if (std::holds_alternative<SnailPtr>(search_down_child))
         {
             snail_it = std::get<SnailPtr>(search_down_child);
@@ -229,18 +232,18 @@ inline void add_to_first_on_side(const SnailPtr &snail, uint64_t val,
         }
         else
         {
-            snail_it->right = std::get<uint64_t>(search_down_child) + val;
+            search_down_child = std::get<uint64_t>(search_down_child) + val;
             return;
         }
     }
 }
 
-inline std::variant<SnailPtr, uint64_t> search_left(const SnailPtr &parent)
+inline std::variant<SnailPtr, uint64_t> &search_left(const SnailPtr &parent)
 {
     return parent->left;
 }
 
-inline std::variant<SnailPtr, uint64_t> search_right(const SnailPtr &parent)
+inline std::variant<SnailPtr, uint64_t> &search_right(const SnailPtr &parent)
 {
     return parent->right;
 }
@@ -252,42 +255,7 @@ inline void add_to_first_left(const SnailPtr &snail, uint64_t val)
 
 inline void add_to_first_right(const SnailPtr &snail, uint64_t val)
 {
-    auto snail_it = snail;
-    // search up
-    while (true)
-    {
-        const auto parent = snail_it->parent.lock();
-        if (!parent)
-        {
-            return;
-        }
-        if (std::holds_alternative<SnailPtr>(parent->right) &&
-            std::get<SnailPtr>(parent->right)->id != snail_it->id)
-        {
-            snail_it = std::get<SnailPtr>(parent->right);
-            break; // search down for right most of sibling
-        }
-        else if (std::holds_alternative<uint64_t>(parent->right))
-        {
-            parent->right = std::get<uint64_t>(parent->right) + val;
-            return;
-        }
-        snail_it = parent;
-    }
-    // search down
-    while (true)
-    {
-        if (std::holds_alternative<SnailPtr>(snail_it->left))
-        {
-            snail_it = std::get<SnailPtr>(snail_it->left);
-            continue; // keep searching
-        }
-        else
-        {
-            snail_it->left = std::get<uint64_t>(snail_it->left) + val;
-            return;
-        }
-    }
+    add_to_first_on_side(snail, val, search_right, search_left);
 }
 
 inline std::optional<SnailPtr> search_explode(const SnailPtr &snail, uint64_t nested_in)
@@ -383,7 +351,9 @@ uint64_t homework_p2(const std::vector<std::string> &lines)
         for (uint64_t b = 0; b < parsed_lines.size(); b++)
         {
             if (a == b)
+            {
                 continue;
+            }
             const auto mag = magnitude(addition(parsed_lines[a], parsed_lines[b], gen));
             largest_mag = std::max(mag, largest_mag);
         }
