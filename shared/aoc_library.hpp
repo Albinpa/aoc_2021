@@ -59,7 +59,6 @@ namespace aoc
         std::array<std::string, SIZE> res;
         std::smatch match;
         std::regex_search(string, match, regex);
-        assert(match.size() == SIZE + 1);
         for (unsigned int i = 1; auto &s : res)
         {
             s = match[i++];
