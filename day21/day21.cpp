@@ -1,69 +1,90 @@
 #include "aoc_library.hpp"
 
-struct Player
+
+inline std::pair<uint64_t, uint64_t> step_player(uint64_t position, uint64_t score, uint64_t steps)
 {
-    uint64_t pos;
-    uint64_t score = 0;
-    void move(uint64_t steps)
+    const uint64_t new_pos = (position + steps - 1) % 10 + 1;
+    return { new_pos, score + new_pos };
+}
+
+struct Answer
+{
+    uint64_t player_wins;
+    uint64_t opponent_wins;
+
+    void operator+=(const Answer& rhs)
     {
-        pos = (pos + steps) % 10;
-        score += position();
-    }
-    uint64_t position()
-    {
-        return pos + 1;
-    }
-    bool won()
-    {
-        return score >= 1000;
+        player_wins += rhs.player_wins;
+        opponent_wins += rhs.opponent_wins;
     }
 };
 
-struct Die
+struct Question
 {
-    uint64_t internal_counter = 0;
-    uint64_t roll()
+    uint64_t player_pos;
+    uint64_t player_score;
+    uint64_t opponent_pos;
+    uint64_t opponent_score;
+
+    auto operator<=>(const Question &) const = default;
+};
+
+struct question_hash
+{
+    std::size_t operator()(const Question &q) const
     {
-        return ++internal_counter;
-    }
-    uint64_t three_rolls()
-    {
-        uint64_t res = 0;
-        for (int i = 0; i < 3; i++)
-        {
-            res += roll();
-        }
-        return res;
+        return (q.player_pos << 48) + (q.player_score << 32) +
+               (q.opponent_pos << 16) + q.opponent_score;
     }
 };
 
-uint64_t practice_game()
+inline std::vector<uint64_t> all_universes()
 {
-    Die die;
-    Player p1 = {.pos = 8 - 1};
-    Player p2 = {.pos = 9 - 1};
+    static const std::vector<uint64_t> res =
+        { 3, 4, 5, 4, 5, 6, 5, 6, 7, 4, 5, 6, 5, 6, 7, 6, 7, 8, 5, 6, 7, 6, 7, 8, 7, 8, 9 };
+    return res;
+}
 
-    while (true)
+typedef std::unordered_map<Question, Answer, question_hash> SolutionMemo;
+
+Answer universe_wins(const Question& quest, SolutionMemo& solutions)
+{
+    if (solutions.contains(quest))
     {
-        p1.move(die.three_rolls());
-        if (p1.won())
+        return solutions.at(quest);
+    }
+
+    Answer accumulated_wins = {0,0};
+
+    for (const uint64_t steps : all_universes())
+    {
+        const auto [player_pos, player_score] = step_player(quest.player_pos, quest.player_score, steps);
+        if (player_score >= 21)
         {
-            aoc::print("p1 won, res: ", die.internal_counter * p2.score);
-            break;
+            accumulated_wins += {1, 0};
         }
-        p2.move(die.three_rolls());
-        if (p2.won())
-        {
-            aoc::print("p2 won, res: ", die.internal_counter * p1.score);
-            break;
+        else {
+            const auto [opponent_wins, player_wins] = universe_wins(
+                {quest.opponent_pos, quest.opponent_score, player_pos, player_score}, solutions);
+            accumulated_wins += {player_wins, opponent_wins};
         }
     }
-    return 0;
+    solutions.emplace(quest, accumulated_wins);
+    return accumulated_wins;
 }
 
 int main()
 {
     const aoc::StopWatch stop_watch;
-    practice_game();
+
+    SolutionMemo solutions;
+    {
+        const auto [p1_wins, p2_wins] = universe_wins({4, 0, 8, 0}, solutions);
+        aoc::assert_equal(std::max(p1_wins, p2_wins), 444356092776315ul); // test example
+    }
+
+    const auto [p1_wins, p2_wins] = universe_wins({8, 0, 9, 0}, solutions);
+    aoc::assert_equal(std::max(p1_wins, p2_wins), 346642902541848ul); // part 2 solution
+
     return 0;
 }
