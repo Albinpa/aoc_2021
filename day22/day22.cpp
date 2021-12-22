@@ -9,42 +9,15 @@ struct Cube
     int64_t x;
     int64_t y;
     int64_t z;
-
-    friend std::ostream &operator<<(std::ostream &stream, const Cube &c)
-    {
-        stream << "{ " << c.x << ", " << c.y << ", " << c.z << " }";
-        return stream;
-    };
 };
 
 inline Cube get_closest_point(const std::pair<Cube, Cube> &line, const Cube &cube)
 {
-    Cube res = cube;
-    if (cube.x < line.first.x)
-    {
-        res.x = line.first.x;
-    }
-    else if (cube.x > line.second.x)
-    {
-        res.x = line.second.x;
-    }
-    if (cube.y < line.first.y)
-    {
-        res.y = line.first.y;
-    }
-    else if (cube.y > line.second.y)
-    {
-        res.y = line.second.y;
-    }
-    if (cube.z < line.first.z)
-    {
-        res.z = line.first.z;
-    }
-    else if (cube.z > line.second.z)
-    {
-        res.z = line.second.z;
-    }
-    return res;
+    return {
+        .x=std::min(std::max(cube.x, line.first.x), line.second.x),
+        .y=std::min(std::max(cube.y, line.first.y), line.second.y),
+        .z=std::min(std::max(cube.z, line.first.z), line.second.z)
+    };
 }
 
 struct Cubeoid
@@ -132,14 +105,6 @@ struct Cubeoid
     {
         return (x_max - x_min + 1) * (y_max - y_min + 1) * (z_max - z_min + 1);
     }
-
-    friend std::ostream &operator<<(std::ostream &stream, const Cubeoid &c)
-    {
-        stream << "{ " << c.x_min << ".." << c.x_max << ", "
-               << c.y_min << ".." << c.y_max << ", "
-               << c.z_min << ".." << c.z_max << " }";
-        return stream;
-    };
 };
 
 inline std::vector<Cubeoid> split(const Cubeoid &c1, const Cubeoid &c2)
@@ -267,8 +232,6 @@ uint64_t solve(const std::vector<std::string> &input, bool part2 = false)
 int main()
 {
     const aoc::StopWatch stop_watch;
-
-    aoc::print(parse_line("on x=-54112..-39298,y=-85059..-49293,z=-27449..7877"));
 
     {
         std::vector<std::string> test_input = {
