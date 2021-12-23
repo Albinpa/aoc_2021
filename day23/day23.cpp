@@ -15,50 +15,51 @@ struct State
 {
     State(const std::vector<Amiphod>& amis)
     {
-        blocked_pos = std::vector<bool>(19, false);
+        blocked_pos = std::vector<bool>(27, false);
         for (const auto& ami : amis)
         {
             unfinished_ami.push_back(ami);
             blocked_pos.at(ami.at_pos) = true;
         }
-        total_cost = 0;
     }
 
-    // blocked positions
     std::vector<bool> blocked_pos;
-
-    uint64_t total_cost;
-
-    // list of unfinished amiphods
+    uint64_t total_cost = 0;
     std::vector<Amiphod> unfinished_ami;
 };
 
 struct Rules
 {
-    // where can i go from each spot
     std::vector<std::vector<uint64_t>> graph = {
         {1},
         {0, 2},
         {1, 3, 11},
         {2, 4},
-        {3, 5, 13},
+        {3, 5, 15},
         {4, 6},
-        {5, 7, 15},
+        {5, 7, 19},
         {6, 8},
-        {7, 9, 17},
+        {7, 9, 23},
         {8, 10},
         {9},
         {2, 12},
-        {11},
-        {4, 14},
+        {11, 13},
+        {12, 14},
         {13},
-        {6, 16},
-        {15},
-        {8, 18},
-        {17}
+        {4, 16},
+        {15, 17},
+        {16, 18},
+        {17},
+        {6, 20},
+        {19, 21},
+        {20, 22},
+        {21},
+        {8, 24},
+        {23, 25},
+        {24, 26},
+        {25},
     };
 
-    // cost of moving per type
     std::unordered_map<char, uint64_t> step_cost = {
         {'A', 1ul},
         {'B', 10ul},
@@ -66,14 +67,29 @@ struct Rules
         {'D', 1000ul},
     };
 
-    std::unordered_map<char, std::vector<uint64_t>> home = {
-        {'A', {11, 12}},
-        {'B', {13, 14}},
-        {'C', {15, 16}},
-        {'D', {17, 18}},
+    std::vector<std::vector<uint64_t>> groups = {
+        {11, 12, 13, 14},
+        {15, 16, 17, 18},
+        {19, 20, 21, 22},
+        {23, 24, 25, 26},
     };
 
-    // is this spot a corridor or hallway
+    std::unordered_map<char, std::vector<uint64_t>> home = {
+        {'A', groups.at(0)},
+        {'B', groups.at(1)},
+        {'C', groups.at(2)},
+        {'D', groups.at(3)},
+    };
+
+    std::vector<uint64_t> belonging_group(uint64_t place) const
+    {
+        if (place < 11)
+        {
+            return {};
+        }
+        return groups.at((place - 11) / 4);
+    }
+
     bool is_hallway(uint64_t pos) const
     {
         return pos < 11;
@@ -83,10 +99,26 @@ struct Rules
     {
         return pos != 2 && pos != 4 && pos != 6 && pos != 8;
     }
-    
-    std::vector<std::pair<uint64_t, uint64_t>> search_move(const Amiphod& ami, const State& state)
+
+    std::optional<uint64_t>
+    found_home(const Amiphod& ami, const std::vector<uint64_t> room, const State& state) const
+    {
+        const auto free_room_spots = ranges::count_if(room, [&state](const auto place)
+                                                            { return !state.blocked_pos[place]; });
+        const auto unfinished_my_type = ranges::count_if(state.unfinished_ami, [&ami](const auto & ami2)
+                                                                { return ami2.type == ami.type; });
+        if (free_room_spots == unfinished_my_type)
+        {
+            return free_room_spots;
+        }
+        return std::nullopt;
+    }
+
+    std::vector<std::pair<uint64_t, uint64_t>>
+    search_move(const Amiphod& ami, const State& state)
     {
         const bool start_in_hallway = is_hallway(ami.at_pos);
+        const auto& exiting_group = belonging_group(ami.at_pos);
         std::vector<std::pair<uint64_t, uint64_t>> to_visit = {{ami.at_pos, 0}};
         std::vector<std::pair<uint64_t, uint64_t>> ok_pos = {};
         std::vector<uint64_t> checked;
@@ -108,30 +140,20 @@ struct Rules
                 {
                     continue;
                 }
-                if (!is_hallway(next) && steps != 0) // room and not on initial exit
+                if (!is_hallway(next) && // is room and not on initial exit
+                    ranges::find(exiting_group, next) == exiting_group.end())
                 {
                     const auto my_room = home.at(ami.type);
                     if (ranges::find(my_room, next) == my_room.end())
                     {
                         continue;
                     }
-                    if (state.blocked_pos.at(my_room[1]))
+                    const auto found = found_home(ami, my_room, state);
+                    if (!found)
                     {
-                        const auto unfinished_my_type = 
-                            ranges::count_if(state.unfinished_ami, [&ami](const auto & ami2)
-                            { return ami2.type == ami.type; });
-                        if (unfinished_my_type == 2)
-                        {
-                            continue;
-                        }
-                        // filled room!
-                        return {{next, steps + 1}};
+                        continue;
                     }
-                    else
-                    {   // found path to deep inside my room!
-                       // aoc::print("found path to deep inside my room! ", ami.type, " ", next);
-                        return {{my_room[1], steps + 2}};
-                    }
+                    return {{my_room[found.value() - 1], steps + found.value()}};
                 }
 
                 to_visit.push_back({next, steps + 1});
@@ -146,23 +168,18 @@ struct Rules
         return ok_pos;
     }
 
-    uint64_t best_cost = std::numeric_limits<uint64_t>::max();
-
-    void best_solution(const State& state)
+    void best_solution(const State& state, uint64_t& best_cost)
     {
         if (state.unfinished_ami.empty())
         {
-            aoc::print("updating best cost ", state.total_cost);
             best_cost = state.total_cost;
         }
-        // for each unfinished amiphod
-        // for each res from search_move()
-        // recurse on updated state if cost is less than prev found lowest cost
+        // for each unfinished amiphod and for each res from search_move()
+            // recurse on updated state if cost is less than prev found lowest cost
         for (const auto& ami : state.unfinished_ami)
         {
             for (const auto& move : search_move(ami, state))
             {
-                //aoc::print("moving ", ami.type, " steps: ", move.second, " to: ", move.first);
                 auto state_copy = state;
                 state_copy.total_cost += step_cost.at(ami.type) * move.second;
                 if (state_copy.total_cost >= best_cost)
@@ -177,37 +194,34 @@ struct Rules
                 const auto my_home = home.at(ami.type);
                 if (ranges::find(my_home, move.first) != my_home.end())
                 {
-                    //aoc::print("found home for ", me->type);
                     state_copy.unfinished_ami.erase(me);
                 }
-                best_solution(state_copy);
+                best_solution(state_copy, best_cost);
             }
         }
-        //aoc::print("unsuccessfully finished search. Best cost: ", best_cost);
         return;
     }
 };
-
 
 int main()
 {
     const aoc::StopWatch stop_watch;
     {
         Rules rules;
-        State test_state({{'B', 11}, {'A', 18}, {'D', 5}, {'D', 17}});
-        test_state.blocked_pos[12] = true;
-        test_state.blocked_pos[14] = true;
-        //rules.best_solution(test_state);
+        State test_state({{'A', 18}, {'A', 17}, {'A', 16}, {'A', 15}});
+        uint64_t best_cost = std::numeric_limits<uint64_t>::max();
+        rules.best_solution(test_state, best_cost);
+        aoc::assert_equal(best_cost, 28ul);
     }
     
     Rules rules;
-    State p1_state({{'D', 11},{'B', 12}, {'A', 13},{'C', 14},{'D', 15},{'B', 16},{'C', 17},{'A', 18}});
-    rules.best_solution(p1_state);
-
-    // things that do not work for p2:
-        // find home is hardcoded to depth 2
-        // unfinished ami which is starting in his own room will get stuck?
-            // hardcoded initial exit with step != 0 
+    State p2_state({{'D', 11}, {'D', 12}, {'D', 13}, {'B', 14},
+                    {'A', 15}, {'C', 16}, {'B', 17}, {'C', 18},
+                    {'D', 19}, {'B', 20}, {'A', 21}, {'B', 22},
+                    {'C', 23}, {'A', 24}, {'C', 25}, {'A', 26}});
+    uint64_t best_cost = std::numeric_limits<uint64_t>::max();
+    rules.best_solution(p2_state, best_cost);
+    aoc::assert_equal(best_cost, 40954ul); // part 2 solution
 
     return 0;
 }
